@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat WebSocket</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #messages { 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            height: 300px; 
+            overflow-y: scroll; 
+            margin-bottom: 10px; 
+            white-space: nowrap; /* Empêche le texte de se casser sur plusieurs lignes */
+            overflow-x: auto; /* Ajoute un défilement horizontal si le texte est trop long */
+        }
+        #inputContainer { display: flex; }
+        #inputContainer input { flex: 1; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Chat WebSocket</h1>
+    <div id="messages"></div>
+    <div id="inputContainer">
+        <input id="messageInput" type="text" placeholder="Tapez un message..." />
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+
+        // Connexion au serveur WebSocket
+        const socket = new WebSocket('ws://localhost:3000');
+
+        // Afficher les messages entrants
+        socket.onmessage = (event) => {
+            const message = event.data; // Le message complet reçu du serveur
+
+            // Crée un nouvel élément div pour chaque message reçu
+            const newMessage = document.createElement('div');
+            newMessage.textContent = message; // Affiche le texte du message complet
+
+            // Ajoute le message au conteneur des messages
+            messagesDiv.appendChild(newMessage);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // Faire défiler vers le bas
+        };
+
+        // Fonction pour envoyer un message au serveur WebSocket
+        const sendMessage = (message) => {
+            // Envoie du message complet au serveur WebSocket
+            socket.send(message);
+
+            // Mise à jour de localStorage pour propager les messages vers d'autres onglets
+            localStorage.setItem('message', message);
+        };
+
+        // Fonction pour écouter et afficher les messages via localStorage
+        const listenForMessages = () => {
+            window.addEventListener('storage', (event) => {
+                if (event.key === 'message') {
+                    const message = event.newValue;
+                    if (message) {
+                        const newMessage = document.createElement('div');
+                        newMessage.textContent = message; // Affiche un message complet
+                        messagesDiv.appendChild(newMessage);
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Faire défiler vers le bas
+                    }
+                }
+            });
+        };
+
+        // Chaque fois que l'utilisateur tape un message, l'envoyer immédiatement
+        messageInput.addEventListener('input', () => {
+            const message = messageInput.value.trim();
+            if (message) {
+                sendMessage(message);
+            }
+        });
+
+        // Démarrer l'écoute des messages
+        listenForMessages();
+
+        // Logger les événements de connexion
+        socket.onopen = () => console.log('Connecté au serveur WebSocket');
+        socket.onclose = () => console.log('Déconnecté du serveur WebSocket');
+        socket.onerror = (error) => console.error('Erreur WebSocket :', error);
+    </script>
+</body>
+</html>
